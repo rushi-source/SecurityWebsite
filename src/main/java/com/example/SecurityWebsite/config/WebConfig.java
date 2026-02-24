@@ -16,7 +16,10 @@ public class WebConfig {
                 registry.addMapping("/**")
                         .allowedOrigins("*")
                         .allowedMethods("*")
-                        
+                        .allowCredentials(true)
+
+                        .allowedHeaders("*")
+
                         .maxAge(3600);
             }
         };
