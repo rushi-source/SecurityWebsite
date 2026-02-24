@@ -85,7 +85,7 @@ public class EmailService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
-        helper.setTo("yourgmail@gmail.com");
+        helper.setTo("rushikeshgadekar491@gmail.com");
         helper.setSubject("📩 New Contact Message");
 
         String body = """
