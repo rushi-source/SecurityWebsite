@@ -16,7 +16,7 @@ public class WebConfig {
                 registry.addMapping("/**")
                         .allowedOrigins("https://surya-mukuls-projects-a0f0111f.vercel.app/")
                         .allowedMethods("*")
-                        .allowCredentials(true)
+                        
 
                         .allowedHeaders("*")
 
