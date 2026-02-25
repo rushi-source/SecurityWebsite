@@ -21,9 +21,11 @@ import com.example.SecurityWebsite.Service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 
+
+
 @RestController
 @RequestMapping("/api")
-
+@CrossOrigin(origins = "https://surya-blond.vercel.app")
 
 
 
