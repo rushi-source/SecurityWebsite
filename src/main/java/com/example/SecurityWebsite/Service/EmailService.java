@@ -1,35 +1,45 @@
 package com.example.SecurityWebsite.Service;
 
 import java.io.IOException;
+import java.util.Base64;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.SecurityWebsite.Model.ContactRequest;
 import com.example.SecurityWebsite.Model.ResumeRequest;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Attachments;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    @Value("${sendgrid.api.key}")
+    private String sendGridApiKey;
 
-    // ✅ Resume Email
+    private final String TO_EMAIL = "rushikeshgadekar491@gmail.com";
+    private final String FROM_EMAIL = "rushikeshgadekar491@gmail.com";
+
+    // ===========================
+    // ✅ Resume Email (With Attachment)
+    // ===========================
     public void sendResumeEmail(ResumeRequest request, MultipartFile file)
-            throws MessagingException, IOException {
+            throws IOException {
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
+            throw new RuntimeException("SendGrid API key is missing!");
+        }
 
-        helper.setTo("rushikeshgadekar491@gmail.com");
-        helper.setSubject("📄 New Resume Submission");
+        Email from = new Email(FROM_EMAIL);
+        Email to = new Email(TO_EMAIL);
+        String subject = "📄 New Resume Submission";
 
         String body = """
                 New Resume Submission Details:
@@ -47,12 +57,12 @@ public class EmailService {
                 request.getJobPosition()
         );
 
-        helper.setText(body);
+        Content content = new Content("text/plain", body);
+        Mail mail = new Mail(from, subject, to, content);
 
-        // ✅ File Validation
+        // ✅ File Validation & Attachment
         if (file != null && !file.isEmpty()) {
 
-            // Allow only PDF or DOC/DOCX
             String fileName = file.getOriginalFilename().toLowerCase();
 
             if (!(fileName.endsWith(".pdf") ||
@@ -63,30 +73,40 @@ public class EmailService {
                         "Only PDF, DOC, DOCX files are allowed");
             }
 
-            // Max file size 5MB
             if (file.getSize() > 5 * 1024 * 1024) {
                 throw new IllegalArgumentException(
                         "File size must be less than 5MB");
             }
 
-            helper.addAttachment(
-                    file.getOriginalFilename(),
-                    new ByteArrayResource(file.getBytes())
-            );
+            Attachments attachment = new Attachments();
+            attachment.setFilename(file.getOriginalFilename());
+            attachment.setType(file.getContentType());
+            attachment.setDisposition("attachment");
+
+            String encodedFile = Base64.getEncoder()
+                    .encodeToString(file.getBytes());
+
+            attachment.setContent(encodedFile);
+
+            mail.addAttachments(attachment);
         }
 
-        mailSender.send(message);
+        sendEmail(mail);
     }
 
+    // ===========================
     // ✅ Contact Email
+    // ===========================
     public void sendContactEmail(ContactRequest request)
-            throws MessagingException {
+            throws IOException {
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
+        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
+            throw new RuntimeException("SendGrid API key is missing!");
+        }
 
-        helper.setTo("rushikeshgadekar491@gmail.com");
-        helper.setSubject("📩 New Contact Message");
+        Email from = new Email(FROM_EMAIL);
+        Email to = new Email(TO_EMAIL);
+        String subject = "📩 New Contact Message";
 
         String body = """
                 New Contact Message:
@@ -105,8 +125,30 @@ public class EmailService {
                 request.getMessage()
         );
 
-        helper.setText(body);
+        Content content = new Content("text/plain", body);
+        Mail mail = new Mail(from, subject, to, content);
 
-        mailSender.send(message);
+        sendEmail(mail);
+    }
+
+    // ===========================
+    // ✅ Common Send Method
+    // ===========================
+    private void sendEmail(Mail mail) throws IOException {
+
+        SendGrid sg = new SendGrid(sendGridApiKey);
+        Request request = new Request();
+
+        request.setMethod(Method.POST);
+        request.setEndpoint("mail/send");
+        request.setBody(mail.build());
+
+        Response response = sg.api(request);
+
+        if (response.getStatusCode() >= 400) {
+            throw new RuntimeException(
+                    "SendGrid Error: " + response.getStatusCode()
+                    + " - " + response.getBody());
+        }
     }
 }
