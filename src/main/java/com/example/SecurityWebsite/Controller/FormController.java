@@ -25,7 +25,7 @@ public class FormController {
     // ==========================
     // ✅ Resume API
     // ==========================
-    @PostMapping(value = "/submit-resume", consumes = {"multipart/form-data"})
+    @PostMapping(value = "/submit-resume", consumes = { "multipart/form-data" })
     public Map<String, String> submitResume(
             @Valid @ModelAttribute ResumeRequest request,
             @RequestParam("file") MultipartFile file)
@@ -35,7 +35,11 @@ public class FormController {
             return Map.of("message", "Please upload a valid file");
         }
 
-        emailService.sendResumeEmail(request, file);
+        // ✅ 1) Send resume email to Admin (with attachment)
+        emailService.sendResumeEmailToAdmin(request, file);
+
+        // ✅ 2) Send confirmation email to user (no attachment)
+        emailService.sendResumeConfirmationToUser(request);
 
         return Map.of("message", "Resume submitted successfully!");
     }
@@ -48,7 +52,11 @@ public class FormController {
             @Valid @RequestBody ContactRequest request)
             throws IOException {
 
+        // ✅ 1) Send contact message to Admin
         emailService.sendContactEmail(request);
+
+        // ✅ 2) Send confirmation email to user (optional but recommended)
+        emailService.sendContactConfirmationToUser(request);
 
         return Map.of("message", "Message sent successfully!");
     }

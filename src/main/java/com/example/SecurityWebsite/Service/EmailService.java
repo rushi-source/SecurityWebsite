@@ -24,21 +24,22 @@ public class EmailService {
     @Value("${sendgrid.api.key}")
     private String sendGridApiKey;
 
-    private final String TO_EMAIL = "rushikeshgadekar491@gmail.com";
+    // ✅ Admin email (where you want to receive submissions)
+    private final String ADMIN_EMAIL = "rushikeshgadekar491@gmail.com";
+
+    // ✅ Sender email (must be verified in SendGrid)
     private final String FROM_EMAIL = "rushikeshgadekar491@gmail.com";
 
     // ===========================
-    // ✅ Resume Email (With Attachment)
+    // ✅ Resume Email (To Admin + Attachment)
     // ===========================
-    public void sendResumeEmail(ResumeRequest request, MultipartFile file)
+    public void sendResumeEmailToAdmin(ResumeRequest request, MultipartFile file)
             throws IOException {
 
-        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
-            throw new RuntimeException("SendGrid API key is missing!");
-        }
+        validateApiKey();
 
         Email from = new Email(FROM_EMAIL);
-        Email to = new Email(TO_EMAIL);
+        Email to = new Email(ADMIN_EMAIL);
         String subject = "📄 New Resume Submission";
 
         String body = """
@@ -60,52 +61,55 @@ public class EmailService {
         Content content = new Content("text/plain", body);
         Mail mail = new Mail(from, subject, to, content);
 
-        // ✅ File Validation & Attachment
-        if (file != null && !file.isEmpty()) {
-
-            String fileName = file.getOriginalFilename().toLowerCase();
-
-            if (!(fileName.endsWith(".pdf") ||
-                  fileName.endsWith(".doc") ||
-                  fileName.endsWith(".docx"))) {
-
-                throw new IllegalArgumentException(
-                        "Only PDF, DOC, DOCX files are allowed");
-            }
-
-            if (file.getSize() > 5 * 1024 * 1024) {
-                throw new IllegalArgumentException(
-                        "File size must be less than 5MB");
-            }
-
-            Attachments attachment = new Attachments();
-            attachment.setFilename(file.getOriginalFilename());
-            attachment.setType(file.getContentType());
-            attachment.setDisposition("attachment");
-
-            String encodedFile = Base64.getEncoder()
-                    .encodeToString(file.getBytes());
-
-            attachment.setContent(encodedFile);
-
-            mail.addAttachments(attachment);
-        }
+        // ✅ Attachment validation + add file
+        addResumeAttachment(mail, file);
 
         sendEmail(mail);
     }
 
     // ===========================
-    // ✅ Contact Email
+    // ✅ Resume Confirmation Email (To User)
+    // ===========================
+    public void sendResumeConfirmationToUser(ResumeRequest request)
+            throws IOException {
+
+        validateApiKey();
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("User email is missing!");
+        }
+
+        Email from = new Email(FROM_EMAIL);
+        Email to = new Email(request.getEmail());
+
+        String subject = "✅ Resume Submitted Successfully";
+
+        String body = """
+                Hi %s,
+
+                Your resume has been submitted successfully.
+                Our team will review your details and contact you soon.
+
+                Thanks & Regards,
+                Surya Security Team
+                """.formatted(request.getName() != null ? request.getName() : "Candidate");
+
+        Content content = new Content("text/plain", body);
+        Mail mail = new Mail(from, subject, to, content);
+
+        sendEmail(mail);
+    }
+
+    // ===========================
+    // ✅ Contact Email (To Admin)
     // ===========================
     public void sendContactEmail(ContactRequest request)
             throws IOException {
 
-        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
-            throw new RuntimeException("SendGrid API key is missing!");
-        }
+        validateApiKey();
 
         Email from = new Email(FROM_EMAIL);
-        Email to = new Email(TO_EMAIL);
+        Email to = new Email(ADMIN_EMAIL);
         String subject = "📩 New Contact Message";
 
         String body = """
@@ -129,6 +133,76 @@ public class EmailService {
         Mail mail = new Mail(from, subject, to, content);
 
         sendEmail(mail);
+    }
+
+    // ===========================
+    // ✅ (Optional) Contact Confirmation Email (To User)
+    // ===========================
+    public void sendContactConfirmationToUser(ContactRequest request)
+            throws IOException {
+
+        validateApiKey();
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("User email is missing!");
+        }
+
+        Email from = new Email(FROM_EMAIL);
+        Email to = new Email(request.getEmail());
+
+        String subject = "✅ Message Received Successfully";
+
+        String body = """
+                Hi %s,
+
+                We received your message successfully.
+                Our team will contact you soon.
+
+                Thanks & Regards,
+                Surya Security Team
+                """.formatted(request.getName() != null ? request.getName() : "Customer");
+
+        Content content = new Content("text/plain", body);
+        Mail mail = new Mail(from, subject, to, content);
+
+        sendEmail(mail);
+    }
+
+    // ===========================
+    // ✅ Helpers
+    // ===========================
+    private void validateApiKey() {
+        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
+            throw new RuntimeException("SendGrid API key is missing!");
+        }
+    }
+
+    private void addResumeAttachment(Mail mail, MultipartFile file) throws IOException {
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Please upload a valid file");
+        }
+
+        String originalName = file.getOriginalFilename();
+        String fileName = (originalName == null) ? "" : originalName.toLowerCase();
+
+        if (!(fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx"))) {
+            throw new IllegalArgumentException("Only PDF, DOC, DOCX files are allowed");
+        }
+
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("File size must be less than 5MB");
+        }
+
+        Attachments attachment = new Attachments();
+        attachment.setFilename(originalName);
+        attachment.setType(file.getContentType());
+        attachment.setDisposition("attachment");
+
+        String encodedFile = Base64.getEncoder().encodeToString(file.getBytes());
+        attachment.setContent(encodedFile);
+
+        mail.addAttachments(attachment);
     }
 
     // ===========================
