@@ -1,6 +1,7 @@
 package com.example.SecurityWebsite.Controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,35 +22,42 @@ public class FormController {
     @Autowired
     private EmailService emailService;
 
+    // ==========================
     // ✅ Resume API
+    // ==========================
     @PostMapping(value = "/submit-resume", consumes = {"multipart/form-data"})
-    public String submitResume(
+    public Map<String, String> submitResume(
             @Valid @ModelAttribute ResumeRequest request,
             @RequestParam("file") MultipartFile file)
             throws IOException {
 
         if (file == null || file.isEmpty()) {
-            return "Please upload a valid file";
+            return Map.of("message", "Please upload a valid file");
         }
 
         emailService.sendResumeEmail(request, file);
 
-        return "Resume submitted successfully!";
+        return Map.of("message", "Resume submitted successfully!");
     }
 
+    // ==========================
     // ✅ Contact API
+    // ==========================
     @PostMapping("/contact")
-    public String contact(@Valid @RequestBody ContactRequest request)
+    public Map<String, String> contact(
+            @Valid @RequestBody ContactRequest request)
             throws IOException {
 
         emailService.sendContactEmail(request);
 
-        return "Message sent successfully!";
+        return Map.of("message", "Message sent successfully!");
     }
 
+    // ==========================
     // ✅ Health Check
-    @GetMapping("/")
-    public String home() {
-        return "Backend is running successfully!";
+    // ==========================
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "Backend is running successfully!");
     }
 }
