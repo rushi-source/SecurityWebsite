@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Base64;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +34,8 @@ public class EmailService {
     // ===========================
     // ✅ Resume Email (To Admin + Attachment)
     // ===========================
+
+    @Async
     public void sendResumeEmailToAdmin(ResumeRequest request, MultipartFile file)
             throws IOException {
 
@@ -70,6 +73,8 @@ public class EmailService {
     // ===========================
     // ✅ Resume Confirmation Email (To User)
     // ===========================
+
+    @Async
     public void sendResumeConfirmationToUser(ResumeRequest request)
             throws IOException {
 
@@ -103,6 +108,8 @@ public class EmailService {
     // ===========================
     // ✅ Contact Email (To Admin)
     // ===========================
+
+    @Async
     public void sendContactEmail(ContactRequest request)
             throws IOException {
 
@@ -138,6 +145,8 @@ public class EmailService {
     // ===========================
     // ✅ (Optional) Contact Confirmation Email (To User)
     // ===========================
+
+    @Async
     public void sendContactConfirmationToUser(ContactRequest request)
             throws IOException {
 
@@ -177,6 +186,7 @@ public class EmailService {
         }
     }
 
+    
     private void addResumeAttachment(Mail mail, MultipartFile file) throws IOException {
 
         if (file == null || file.isEmpty()) {
@@ -208,6 +218,8 @@ public class EmailService {
     // ===========================
     // ✅ Common Send Method
     // ===========================
+
+    
     private void sendEmail(Mail mail) throws IOException {
 
         SendGrid sg = new SendGrid(sendGridApiKey);
